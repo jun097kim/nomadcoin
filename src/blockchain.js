@@ -90,7 +90,7 @@ const isChainValid = candidateChain => {
   };
   if (!isGenesisValid(candidateChain[0])) {
     console.log(
-      "The candidateChain's genesisBlock is not the same as our g enesisBlock"
+      "The candidateChain's genesisBlock is not the same as our genesisBlock"
     );
     return false;
   }
