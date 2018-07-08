@@ -1,5 +1,6 @@
 const CryptoJS = require("crypto-js"),
   elliptic = require("elliptic"),
+  _ = require("lodash"),
   utils = require("./utils");
 
 const ec = new elliptic.ec("secp256k1");
@@ -55,7 +56,11 @@ const findUTxOut = (txOutId, txOutIndex, uTxOutList) => {
 const signTxIn = (tx, txInIndex, privateKey, uTxOutList) => {
   const txIn = tx.txIns[txInIndex];
   const dataToSign = tx.id;
-  const referencedUTxOut = findUTxOut(txIn.txOutId, txIn.txOutIndex, uTxOutList);
+  const referencedUTxOut = findUTxOut(
+    txIn.txOutId,
+    txIn.txOutIndex,
+    uTxOutList
+  );
   if (referencedUTxOut === null) {
     return;
   }
@@ -77,11 +82,10 @@ const getPublicKey = privateKey => {
 
 const updateUTxOuts = (newTxs, uTxOutList) => {
   const newUTxOuts = newTxs
-    .map(tx => {
-      tx.txOuts.map((txOut, index) => {
-        new UTxOut(tx.id, index, txOut.address, txOut.amount);
-      });
-    })
+    .map(tx => tx.txOuts.map(
+        (txOut, index) => new UTxOut(tx.id, index, txOut.address, txOut.amount)
+      )
+    )
     .reduce((a, b) => a.concat(b), []);
 
   const spentTxOuts = newTxs
@@ -90,7 +94,7 @@ const updateUTxOuts = (newTxs, uTxOutList) => {
     .map(txIn => new UTxOut(txIn.txOutId, txIn.txOutIndex, "", 0));
 
   const resultingUTxOuts = uTxOutList
-    .filter(uTxO => !findUTxOut(uTxO.txOutId, uTxO.txOutIndex, uTxOuts))
+    .filter(uTxO => !findUTxOut(uTxO.txOutId, uTxO.txOutIndex, spentTxOuts))
     .concat(newUTxOuts);
 
   return resultingUTxOuts;
@@ -211,17 +215,75 @@ const validateTx = (tx, uTxOutList) => {
 const validateCoinbaseTx = (tx, blockIndex) => {
   if (getTxId(tx) !== tx.id) {
     return false;
-  } else if (tx.txIns.legnth !== 1) {
+  } else if (tx.txIns.length !== 1) {
     return false;
   } else if (tx.txIns[0].txOutIndex !== blockIndex) {
     return false;
   } else if (tx.txOuts.length !== 1) {
     return false;
-  } else if (tx.txOuts.amount !== COINBASE_AMOUNT) {
+  } else if (tx.txOuts[0].amount !== COINBASE_AMOUNT) {
     return false;
   } else {
     return true;
   }
+};
+
+const createCoinbaseTx = (address, blockIndex) => {
+  const tx = new Transaction();
+  const txIn = new TxIn();
+  txIn.signature = "";
+  txIn.txOutId = "";
+  txIn.txOutIndex = blockIndex;
+  tx.txIns = [txIn];
+  tx.txOuts = [new TxOut(address, COINBASE_AMOUNT)];
+  tx.id = getTxId(tx);
+  return tx;
+};
+
+const hasDuplicates = txIns => {
+  const groups = _.countBy(txIns, txIn => txIn.txOutId + txIn.txOutIndex);
+
+  return _(groups)
+    .map(value => {
+      if (value > 1) {
+        console.log("Found a duplicated txIn");
+        return true;
+      } else {
+        return false;
+      }
+    })
+    .includes(true);
+};
+
+const validateBlockTxs = (txs, uTxOutList, blockIndex) => {
+  const coinbaseTx = txs[0];
+  if (!validateCoinbaseTx(coinbaseTx, blockIndex)) {
+    console.log("Coinbase Tx is invalid");
+    return false;
+  }
+
+  const txIns = _(txs)
+    .map(tx => tx.txIns)
+    .flatten()
+    .value();
+
+  if (hasDuplicates(txIns)) {
+    console.log("Found duplicated txIns");
+    return false;
+  }
+
+  const nonCoinbaseTx = txs.slice(1);
+
+  return nonCoinbaseTx
+    .map(tx => validateTx(tx, uTxOutList))
+    .reduce((a, b) => a && b, true);
+};
+
+const processTxs = (txs, uTxOutList, blockIndex) => {
+  if (!validateBlockTxs(txs, uTxOutList, blockIndex)) {
+    return null;
+  }
+  return updateUTxOuts(txs, uTxOutList);
 };
 
 module.exports = {
@@ -230,5 +292,7 @@ module.exports = {
   signTxIn,
   TxIn,
   Transaction,
-  TxOut
+  TxOut,
+  createCoinbaseTx,
+  processTxs
 };

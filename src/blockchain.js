@@ -1,8 +1,11 @@
 const CryptoJS = require("crypto-js"),
   Wallet = require("./wallet"),
+  Transactions = require("./transactions"),
   hexToBinary = require("hex-to-binary");
 
 const { getBalance, getPublicFromWallet } = Wallet;
+
+const { createCoinbaseTx, processTxs } = Transactions;
 
 const BLOCK_GENERATION_INTERVAL = 10;
 const DIFFICULTY_ADJUSTMENT_INTERVAL = 10;
@@ -25,7 +28,7 @@ const genesisBlock = new Block(
   null,
   1530971508,
   "This is the genesis!!",
-  10,
+  0,
   0
 );
 
@@ -44,7 +47,15 @@ const createHash = (index, previousHash, timestamp, data, difficulty, nonce) =>
     index + previousHash + timestamp + JSON.stringify(data) + difficulty + nonce
   ).toString();
 
-const createNewBlock = data => {
+const createNewBlock = () => {
+  const coinbaseTx = createCoinbaseTx(
+    getPublicFromWallet(),
+    getNewestBlock().index + 1
+  );
+  const blockData = [coinbaseTx];
+  return createNewRawBlock(blockData);
+};
+const createNewRawBlock = data => {
   const previousBlock = getNewestBlock();
   const newBlockIndex = previousBlock.index + 1;
   const newTimestamp = getTimestamp();
@@ -168,7 +179,7 @@ const isBlockStructureValid = block => {
     typeof block.hash === "string" &&
     typeof block.previousHash === "string" &&
     typeof block.timestamp === "number" &&
-    typeof block.data === "string"
+    typeof block.data === "object"
   );
 };
 
@@ -210,8 +221,19 @@ const replaceChain = candidateChain => {
 
 const addBlockToChain = candidateBlock => {
   if (isBlockValid(candidateBlock, getNewestBlock())) {
-    getBlockChain().push(candidateBlock);
-    return true;
+    const processedTxs = processTxs(
+      candidateBlock.data,
+      uTxOuts,
+      candidateBlock.index
+    );
+    if (processedTxs === null) {
+      console.log("Couldnt process Tx");
+      return false;
+    } else {
+      getBlockChain().push(candidateBlock);
+      uTxOuts = processedTxs;
+      return true;
+    }
   } else {
     return false;
   }
