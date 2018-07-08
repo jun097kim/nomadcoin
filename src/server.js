@@ -5,7 +5,7 @@ const express = require("express"),
   P2P = require("./p2p"),
   Wallet = require("./wallet");
 
-const { getBlockChain, createNewBlock } = Blockchain;
+const { getBlockChain, createNewBlock, getAccountBalance } = Blockchain;
 const { startP2PServer, connectToPeers } = P2P;
 const { initWallet } = Wallet;
 
@@ -15,20 +15,30 @@ const app = express();
 app.use(bodyParser.json());
 app.use(morgan("combined"));
 
-app.get("/blocks", (req, res) => {
-  res.send(getBlockChain());
-});
-
-app.post("/blocks", (req, res) => {
-  const { body: { data } } = req;
-  const newBlock = createNewBlock(data);
-  res.send(newBlock);
-});
+app
+  .route("/blocks")
+  .get((req, res) => {
+    res.send(getBlockChain());
+  })
+  .post((req, res) => {
+    const {
+      body: { data }
+    } = req;
+    const newBlock = createNewBlock(data);
+    res.send(newBlock);
+  });
 
 app.post("/peers", (req, res) => {
-  const { body: { peer } } = req;
+  const {
+    body: { peer }
+  } = req;
   connectToPeers(peer);
   res.send();
+});
+
+app.get("/me/balance", (req, res) => {
+  const balance = getAccountBalance();
+  res.send({ balance });
 });
 
 const server = app.listen(PORT, () =>
