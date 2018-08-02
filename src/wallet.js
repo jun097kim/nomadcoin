@@ -1,14 +1,14 @@
-const elliptic = require("elliptic"),
-  path = require("path"),
-  fs = require("fs"),
-  _ = require("lodash"),
-  Transactions = require("./transactions");
+const elliptic = require('elliptic'),
+  path = require('path'),
+  fs = require('fs'),
+  _ = require('lodash'),
+  Transactions = require('./transactions');
 
 const { getPublicKey, getTxId, signTxIn, TxIn, TxOut } = Transactions;
 
-const ec = new elliptic.ec("secp256k1");
+const ec = new elliptic.ec('secp256k1');
 
-const privateKeyLocation = path.join(__dirname, "privateKey");
+const privateKeyLocation = path.join(__dirname, 'privateKey');
 
 const generatePrivateKey = () => {
   const keyPair = ec.genKeyPair();
@@ -17,14 +17,14 @@ const generatePrivateKey = () => {
 };
 
 const getPrivateFromWallet = () => {
-  const buffer = fs.readFileSync(privateKeyLocation, "utf8");
+  const buffer = fs.readFileSync(privateKeyLocation, 'utf8');
   return buffer.toString();
 };
 
 const getPublicFromWallet = () => {
   const privateKey = getPrivateFromWallet();
-  const key = ec.keyFromPrivate(privateKey, "hex");
-  return key.getPublic().encode("hex");
+  const key = ec.keyFromPrivate(privateKey, 'hex');
+  return key.getPublic().encode('hex');
 };
 
 const getBalance = (address, uTxOuts) => {
@@ -54,7 +54,7 @@ const findAmountInUTxOuts = (amountNeeded, myUTxOuts) => {
       return { includedUTxOuts, leftOverAmount };
     }
   }
-  console.log("Not enough founds");
+  console.log('Not enough founds');
   return false;
 };
 
@@ -102,5 +102,7 @@ const createTx = (receiverAddress, amount, privateKey, uTxOutList) => {
 module.exports = {
   initWallet,
   getBalance,
-  getPublicFromWallet
+  getPublicFromWallet,
+  createTx,
+  getPrivateFromWallet
 };

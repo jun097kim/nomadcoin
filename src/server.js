@@ -1,9 +1,9 @@
-const express = require("express"),
-  bodyParser = require("body-parser"),
-  morgan = require("morgan"),
-  Blockchain = require("./blockchain"),
-  P2P = require("./p2p"),
-  Wallet = require("./wallet");
+const express = require('express'),
+  bodyParser = require('body-parser'),
+  morgan = require('morgan'),
+  Blockchain = require('./blockchain'),
+  P2P = require('./p2p'),
+  Wallet = require('./wallet');
 
 const { getBlockChain, createNewBlock, getAccountBalance } = Blockchain;
 const { startP2PServer, connectToPeers } = P2P;
@@ -13,10 +13,10 @@ const PORT = process.env.HTTP_PORT || 3000;
 
 const app = express();
 app.use(bodyParser.json());
-app.use(morgan("combined"));
+app.use(morgan('combined'));
 
 app
-  .route("/blocks")
+  .route('/blocks')
   .get((req, res) => {
     res.send(getBlockChain());
   })
@@ -25,12 +25,12 @@ app
     res.send(newBlock);
   });
 
-app.post("/peers", (req, res) => {
+app.post('/peers', (req, res) => {
   connectToPeers(peer);
   res.send();
 });
 
-app.get("/me/balance", (req, res) => {
+app.get('/me/balance', (req, res) => {
   const balance = getAccountBalance();
   res.send({ balance });
 });

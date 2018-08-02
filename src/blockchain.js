@@ -1,11 +1,20 @@
-const CryptoJS = require("crypto-js"),
-  Wallet = require("./wallet"),
-  Transactions = require("./transactions"),
-  hexToBinary = require("hex-to-binary");
+const CryptoJS = require('crypto-js'),
+  _ = require('lodash'),
+  Wallet = require('./wallet'),
+  Mempool = require('./mempool');
+(Transactions = require('./transactions')),
+(hexToBinary = require('hex-to-binary'));
 
-const { getBalance, getPublicFromWallet } = Wallet;
+const {
+  getBalance,
+  getPublicFromWallet,
+  createTx,
+  getPrivateFromWallet
+} = Wallet;
 
 const { createCoinbaseTx, processTxs } = Transactions;
+
+const { addToMempool } = Mempool;
 
 const BLOCK_GENERATION_INTERVAL = 10;
 const DIFFICULTY_ADJUSTMENT_INTERVAL = 10;
@@ -24,10 +33,10 @@ class Block {
 
 const genesisBlock = new Block(
   0,
-  "9A5B5EBE5C9C2C73AB5BBD3E4AE352A98A56E4B99B4B370439F5DF0BD12A81F6",
+  '9A5B5EBE5C9C2C73AB5BBD3E4AE352A98A56E4B99B4B370439F5DF0BD12A81F6',
   null,
   1530971508,
-  "This is the genesis!!",
+  'This is the genesis!!',
   0,
   0
 );
@@ -48,13 +57,15 @@ const createHash = (index, previousHash, timestamp, data, difficulty, nonce) =>
   ).toString();
 
 const createNewBlock = () => {
+  // 코인베이스 트랜잭션 생성
   const coinbaseTx = createCoinbaseTx(
     getPublicFromWallet(),
-    getNewestBlock().index + 1
+    getNewestBlock().index + 1 // 새로운 블록의 인덱스
   );
   const blockData = [coinbaseTx];
   return createNewRawBlock(blockData);
 };
+
 const createNewRawBlock = data => {
   const previousBlock = getNewestBlock();
   const newBlockIndex = previousBlock.index + 1;
@@ -68,7 +79,7 @@ const createNewRawBlock = data => {
     difficulty
   );
   addBlockToChain(newBlock);
-  require("./p2p").broadcastNewBlock();
+  require('./p2p').broadcastNewBlock();
   return newBlock;
 };
 
@@ -102,7 +113,7 @@ const calculateNewDifficulty = (newestBlock, blockchain) => {
 const findBlock = (index, previousHash, timestamp, data, difficulty) => {
   let nonce = 0;
   while (true) {
-    console.log("Current nonce", nonce);
+    console.log('Current nonce', nonce);
     const hash = createHash(
       index,
       previousHash,
@@ -129,8 +140,8 @@ const findBlock = (index, previousHash, timestamp, data, difficulty) => {
 
 const hashMatchesDifficulty = (hash, difficulty) => {
   const hashInBinary = hexToBinary(hash);
-  const requiredZeros = "0".repeat(difficulty);
-  console.log("Trying difficulty:", difficulty, "with hash", hashInBinary);
+  const requiredZeros = '0'.repeat(difficulty);
+  console.log('Trying difficulty:', difficulty, 'with hash', hashInBinary);
   return hashInBinary.startsWith(requiredZeros);
 };
 
@@ -153,21 +164,21 @@ const isTimestampValid = (newBlock, oldBlock) => {
 
 const isBlockValid = (candidateBlock, latestBlock) => {
   if (!isBlockStructureValid(candidateBlock)) {
-    console.log("The candidate block structure is not valid");
+    console.log('The candidate block structure is not valid');
     return false;
   } else if (latestBlock.index + 1 !== candidateBlock.index) {
-    console.log("The candidate block doesnt have a valid index");
+    console.log('The candidate block doesnt have a valid index');
     return false;
   } else if (latestBlock.hash !== candidateBlock.previousHash) {
     console.log(
-      "The previousHash of the candidate block is not the hash of latest block"
+      'The previousHash of the candidate block is not the hash of latest block'
     );
     return false;
   } else if (getBlocksHash(candidateBlock) !== candidateBlock.hash) {
-    console.log("The hash of this block is invalid");
+    console.log('The hash of this block is invalid');
     return false;
   } else if (!isTimestampValid(candidateBlock, latestBlock)) {
-    console.log("The timestamp of this block is dodgy");
+    console.log('The timestamp of this block is dodgy');
     return false;
   }
   return true;
@@ -175,11 +186,11 @@ const isBlockValid = (candidateBlock, latestBlock) => {
 
 const isBlockStructureValid = block => {
   return (
-    typeof block.index === "number" &&
-    typeof block.hash === "string" &&
-    typeof block.previousHash === "string" &&
-    typeof block.timestamp === "number" &&
-    typeof block.data === "object"
+    typeof block.index === 'number' &&
+    typeof block.hash === 'string' &&
+    typeof block.previousHash === 'string' &&
+    typeof block.timestamp === 'number' &&
+    typeof block.data === 'object'
   );
 };
 
@@ -227,7 +238,7 @@ const addBlockToChain = candidateBlock => {
       candidateBlock.index
     );
     if (processedTxs === null) {
-      console.log("Couldnt process Tx");
+      console.log('Couldnt process Tx');
       return false;
     } else {
       getBlockChain().push(candidateBlock);
@@ -239,7 +250,18 @@ const addBlockToChain = candidateBlock => {
   }
 };
 
+/**
+ * UTXO 리스트의 복사본을 반환하는 함수
+ * lodash를 이용하여 UTXO 리스트를 깊은 복사한다.
+ */
+const getUTxOutList = () => _.cloneDeep(uTxOuts);
+
 const getAccountBalance = () => getBalance(getPublicFromWallet(), uTxOuts);
+
+const sendTx = (address, amount) => {
+  const tx = createTx(address, amount, getPrivateFromWallet(), getUTxOutList());
+  addToMempool(tx, getUTxOutList());
+};
 
 module.exports = {
   getNewestBlock,

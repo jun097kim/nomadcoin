@@ -1,5 +1,5 @@
-const WebSockets = require("ws"),
-  Blockchain = require("./blockchain");
+const WebSockets = require('ws'),
+  Blockchain = require('./blockchain');
 
 const {
   getNewestBlock,
@@ -12,9 +12,9 @@ const {
 const sockets = [];
 
 // Message Types
-const GET_LATEST = "GET_LATEST";
-const GET_ALL = "GET_ALL";
-const BLOCKCHAIN_RESPONSE = "BLOCKCHAIN_RESPONSE";
+const GET_LATEST = 'GET_LATEST';
+const GET_ALL = 'GET_ALL';
+const BLOCKCHAIN_RESPONSE = 'BLOCKCHAIN_RESPONSE';
 
 // Message Creators
 const getLatest = () => {
@@ -42,10 +42,10 @@ const getSockets = () => sockets;
 
 const startP2PServer = server => {
   const wsServer = new WebSockets.Server({ server });
-  wsServer.on("connection", ws => {
+  wsServer.on('connection', ws => {
     initSocketConnection(ws);
   });
-  console.log("Nomadcoin P2P Server running!");
+  console.log('Nomadcoin P2P Server running!');
 };
 
 const initSocketConnection = ws => {
@@ -65,38 +65,38 @@ const parseData = data => {
 };
 
 const handleSocketMessages = ws => {
-  ws.on("message", data => {
+  ws.on('message', data => {
     const message = parseData(data);
     if (message === null) {
       return;
     }
     console.log(message);
     switch (message.type) {
-      case GET_LATEST:
-        sendMessage(ws, responseLatest());
+    case GET_LATEST:
+      sendMessage(ws, responseLatest());
+      break;
+    case GET_ALL:
+      sendMessage(ws, responseAll());
+      break;
+    case BLOCKCHAIN_RESPONSE:
+      const receivedBlocks = message.data;
+      if (receivedBlocks === null) {
         break;
-      case GET_ALL:
-        sendMessage(ws, responseAll());
-        break;
-      case BLOCKCHAIN_RESPONSE:
-        const receivedBlocks = message.data;
-        if (receivedBlocks === null) {
-          break;
-        }
-        handleBlockchainResponse(receivedBlocks);
-        break;
+      }
+      handleBlockchainResponse(receivedBlocks);
+      break;
     }
   });
 };
 
 const handleBlockchainResponse = receivedBlocks => {
   if (receivedBlocks.length === 0) {
-    console.log("Received blocks have a length of 0");
+    console.log('Received blocks have a length of 0');
     return;
   }
   const lastBlockReceived = receivedBlocks[receivedBlocks.length - 1];
   if (!isBlockStructureValid(lastBlockReceived)) {
-    console.log("The block structure of the block received is not valid");
+    console.log('The block structure of the block received is not valid');
     return;
   }
   const newestBlock = getNewestBlock();
@@ -129,13 +129,13 @@ const handleSocketError = ws => {
     ws.close();
     sockets.splice(sockets.indexOf(ws));
   };
-  ws.on("close", () => closeSocketConnection(ws));
-  ws.on("error ", () => closeSocketConnection(ws));
+  ws.on('close', () => closeSocketConnection(ws));
+  ws.on('error ', () => closeSocketConnection(ws));
 };
 
 const connectToPeers = newPeer => {
   const ws = new WebSockets(newPeer);
-  ws.on("open", () => {
+  ws.on('open', () => {
     initSocketConnection(ws);
   });
 };
