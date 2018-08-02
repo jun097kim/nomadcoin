@@ -4,7 +4,14 @@ const elliptic = require('elliptic'),
   _ = require('lodash'),
   Transactions = require('./transactions');
 
-const { getPublicKey, getTxId, signTxIn, TxIn, TxOut } = Transactions;
+const {
+  getPublicKey,
+  getTxId,
+  signTxIn,
+  TxIn,
+  Transaction,
+  TxOut
+} = Transactions;
 
 const ec = new elliptic.ec('secp256k1');
 
@@ -47,14 +54,14 @@ const findAmountInUTxOuts = (amountNeeded, myUTxOuts) => {
   let currentAmount = 0;
   const includedUTxOuts = [];
   for (const myUTxOut of myUTxOuts) {
-    includedUTxOuts.push(myUtxOut);
+    includedUTxOuts.push(myUTxOut);
     currentAmount = currentAmount + myUTxOut.amount;
     if (currentAmount >= amountNeeded) {
       const leftOverAmount = currentAmount - amountNeeded;
       return { includedUTxOuts, leftOverAmount };
     }
   }
-  console.log('Not enough founds');
+  throw Error('Not enough funds');
   return false;
 };
 
@@ -64,7 +71,7 @@ const createTxOuts = (receiverAddress, myAddress, amount, leftOverAmount) => {
     return [receiverTxOut];
   } else {
     const leftOverTxOut = new TxOut(myAddress, leftOverAmount);
-    return [receiverTxOut, leftOverAmount];
+    return [receiverTxOut, leftOverTxOut];
   }
 };
 
@@ -77,10 +84,12 @@ const createTx = (receiverAddress, amount, privateKey, uTxOutList) => {
     myUTxOuts
   );
 
+  // UTXO를 트랜잭션 input으로 바꿈
   const toUnsignedTxIn = uTxOut => {
     const txIn = new TxIn();
     txIn.txOutId = uTxOut.txOutId;
     txIn.txOutIndex = uTxOut.txOutIndex;
+    return txIn;
   };
 
   const unsignedTxIns = includedUTxOuts.map(toUnsignedTxIn);

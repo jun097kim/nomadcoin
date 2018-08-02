@@ -166,7 +166,7 @@ const isTxStructureValid = tx => {
     console.log('The txIns are not an array');
     return false;
   } else if (
-    (!tx.txIns.map(isTxInStructureValid).reduce((a, b) => a && b), true)
+    !tx.txIns.map(isTxInStructureValid).reduce((a, b) => a && b, true)
   ) {
     console.log('The structure of one of the txIn is not valid');
     return false;
@@ -174,7 +174,7 @@ const isTxStructureValid = tx => {
     console.log('The txOuts are not an array');
     return false;
   } else if (
-    (!tx.txOuts.map(isTxOutStructureValid).reduce((a, b) => a && b), true)
+    !tx.txOuts.map(isTxOutStructureValid).reduce((a, b) => a && b, true)
   ) {
     console.log('The structure of one of the txOut is not valid');
     return false;
@@ -298,7 +298,7 @@ const hasDuplicates = txIns => {
 const validateBlockTxs = (txs, uTxOutList, blockIndex) => {
   // 코인베이스 트랜잭션 검증
   const coinbaseTx = txs[0];
-  if (!validateCoinbaseTx(coinbaseTx, ㅑblockIndex)) {
+  if (!validateCoinbaseTx(coinbaseTx, blockIndex)) {
     console.log('Coinbase Tx is invalid');
     return false;
   }

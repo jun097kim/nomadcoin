@@ -14,7 +14,7 @@ const {
 
 const { createCoinbaseTx, processTxs } = Transactions;
 
-const { addToMempool } = Mempool;
+const { addToMempool, getMempool } = Mempool;
 
 const BLOCK_GENERATION_INTERVAL = 10;
 const DIFFICULTY_ADJUSTMENT_INTERVAL = 10;
@@ -62,7 +62,7 @@ const createNewBlock = () => {
     getPublicFromWallet(),
     getNewestBlock().index + 1 // 새로운 블록의 인덱스
   );
-  const blockData = [coinbaseTx];
+  const blockData = [coinbaseTx].concat(getMempool()); // Mempool에 추가된 트랜잭션 컨펌
   return createNewRawBlock(blockData);
 };
 
@@ -261,6 +261,7 @@ const getAccountBalance = () => getBalance(getPublicFromWallet(), uTxOuts);
 const sendTx = (address, amount) => {
   const tx = createTx(address, amount, getPrivateFromWallet(), getUTxOutList());
   addToMempool(tx, getUTxOutList());
+  return tx;
 };
 
 module.exports = {
@@ -270,5 +271,6 @@ module.exports = {
   isBlockStructureValid,
   addBlockToChain,
   replaceChain,
-  getAccountBalance
+  getAccountBalance,
+  sendTx
 };

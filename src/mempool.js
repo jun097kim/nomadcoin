@@ -6,6 +6,10 @@ const { validateTx } = Transactions;
 // Mempool: 아직 블록체인에 포함되지 않은 트랜잭션
 let mempool = [];
 
+const getMempool = () => {
+  return _.cloneDeep(mempool);
+};
+
 /**
  * pool 안에 있는 트랜잭션을 가져옴
  * @param {*} mempool
@@ -56,8 +60,10 @@ const addToMempool = (tx, uTxOutList) => {
     throw Error('This tx is not valid for the pool. Will not add it.');
   }
   mempool.push(tx);
+  console.log(tx);
 };
 
 module.exports = {
-  addToMempool
+  addToMempool,
+  getMempool
 };
