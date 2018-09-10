@@ -31,19 +31,31 @@ class Block {
   }
 }
 
+const genesisTx = {
+  txIns: [{ Signature: '', txOutId: '', txOutIndex: 0 }],
+  txOuts: [
+    {
+      address:
+        '04713677381ed0b78b2b08c02cdf83af435f3fb3f9db2bd215a588add9555d196f08c642102ff677c8cda5625092aaafdbafc0d4bea38a7076e25eca8c9bc79fdb',
+      amount: 50
+    }
+  ],
+  id: 'c059a925c2125d41fd6273ab2d87add47aaa6881de87320f3e85d1286477f652'
+};
+
 const genesisBlock = new Block(
   0,
-  '9A5B5EBE5C9C2C73AB5BBD3E4AE352A98A56E4B99B4B370439F5DF0BD12A81F6',
+  '106e212b5a2e3ea2b359461dbb92dcceb9f8a04782d4738b1c67bface7d3ed5f',
   null,
   1530971508,
-  'This is the genesis!!',
+  [genesisTx], // 제네시스 블록은 제네시스 트랜잭션이 있음
   0,
   0
 );
 
 let blockchain = [genesisBlock];
 
-let uTxOuts = [];
+let uTxOuts = processTxs(blockchain[0].data, [], 0);
 
 const getNewestBlock = () => blockchain[blockchain.length - 1];
 
