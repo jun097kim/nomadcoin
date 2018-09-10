@@ -75,13 +75,47 @@ const createTxOuts = (receiverAddress, myAddress, amount, leftOverAmount) => {
   }
 };
 
-const createTx = (receiverAddress, amount, privateKey, uTxOutList) => {
+/**
+ * uTxOutList에서 이미 Mempool에 있는 트랜잭션 input 필터
+ * @param {*} uTxOutList 우리가 갖고 있는 돈
+ * @param {*} mempool 이미 사용한 돈
+ */
+const filterUTxOutsFromMempool = (uTxOutList, mempool) => {
+  // Mempool 안의 모든 트랜잭션 input을 가져옴
+  const txIns = _(mempool)
+    .map(tx => tx.txIns)
+    .flatten()
+    .value();
+
+  const removables = []; // 필터할 트랜잭션들
+
+  for (const uTxOut of uTxOutList) {
+    // uTxOutList에서 이미 Mempool 안에 있는 트랜잭션 찾음
+    const txIn = _.find(
+      txIns,
+      txIn =>
+        txIn.txOutIndex === uTxOut.txOutIndex && txIn.txOutId === uTxOut.txOutId
+    );
+
+    // 찾으면 필터 대상
+    if (txIn !== undefined) {
+      removables.push(uTxOut);
+    }
+  }
+
+  // uTxOutList에서 removables 요소를 제외하고 리턴
+  return _.without(uTxOutList, ...removables);
+};
+
+const createTx = (receiverAddress, amount, privateKey, uTxOutList, mempool) => {
   const myAddress = getPublicKey(privateKey);
   const myUTxOuts = uTxOutList.filter(uTxO => uTxO.address === myAddress);
 
+  const filteredUTxOuts = filterUTxOutsFromMempool(myUTxOuts, mempool);
+
   const { includedUTxOuts, leftOverAmount } = findAmountInUTxOuts(
     amount,
-    myUTxOuts
+    filteredUTxOuts
   );
 
   // UTXO를 트랜잭션 input으로 바꿈

@@ -60,7 +60,6 @@ const addToMempool = (tx, uTxOutList) => {
     throw Error('This tx is not valid for the pool. Will not add it.');
   }
   mempool.push(tx);
-  console.log(tx);
 };
 
 module.exports = {
