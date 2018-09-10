@@ -14,7 +14,7 @@ const {
 
 const { createCoinbaseTx, processTxs } = Transactions;
 
-const { addToMempool, getMempool } = Mempool;
+const { addToMempool, getMempool, updateMempool } = Mempool;
 
 const BLOCK_GENERATION_INTERVAL = 10;
 const DIFFICULTY_ADJUSTMENT_INTERVAL = 10;
@@ -62,7 +62,8 @@ const createNewBlock = () => {
     getPublicFromWallet(),
     getNewestBlock().index + 1 // 새로운 블록의 인덱스
   );
-  const blockData = [coinbaseTx].concat(getMempool()); // Mempool에 추가된 트랜잭션 컨펌
+  // Mempool에 추가된 트랜잭션도 다음 채굴을 할 때 컨펌되도록 함
+  const blockData = [coinbaseTx].concat(getMempool());
   return createNewRawBlock(blockData);
 };
 
@@ -243,6 +244,7 @@ const addBlockToChain = candidateBlock => {
     } else {
       getBlockChain().push(candidateBlock);
       uTxOuts = processedTxs;
+      updateMempool(uTxOuts); // 컨펌된 트랜잭션을 Mempool에서 지움
       return true;
     }
   } else {

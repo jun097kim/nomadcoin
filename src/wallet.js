@@ -17,23 +17,37 @@ const ec = new elliptic.ec('secp256k1');
 
 const privateKeyLocation = path.join(__dirname, 'privateKey');
 
+/**
+ * private 키 생성
+ */
 const generatePrivateKey = () => {
   const keyPair = ec.genKeyPair();
   const privateKey = keyPair.getPrivate();
   return privateKey.toString(16);
 };
 
+/**
+ * 지갑에서 private 키 가져오기
+ */
 const getPrivateFromWallet = () => {
   const buffer = fs.readFileSync(privateKeyLocation, 'utf8');
   return buffer.toString();
 };
 
+/**
+ * 지갑에서 public 키 가져오기
+ */
 const getPublicFromWallet = () => {
   const privateKey = getPrivateFromWallet();
   const key = ec.keyFromPrivate(privateKey, 'hex');
   return key.getPublic().encode('hex');
 };
 
+/**
+ * 해당 계정의 잔액 구하기
+ * @param {*} address 계정 주소
+ * @param {*} uTxOuts
+ */
 const getBalance = (address, uTxOuts) => {
   return _(uTxOuts)
     .filter(uTxO => uTxO.address === address)
@@ -41,6 +55,9 @@ const getBalance = (address, uTxOuts) => {
     .sum();
 };
 
+/**
+ * 지갑 파일 생성
+ */
 const initWallet = () => {
   if (fs.existsSync(privateKeyLocation)) {
     return;
@@ -50,13 +67,20 @@ const initWallet = () => {
   fs.writeFileSync(privateKeyLocation, newPrivateKey);
 };
 
+/**
+ * 내 UTXO 리스트에서 필요한 잔액 만큼의 UTXO 찾기
+ * @param {*} amountNeeded 필요한 잔액
+ * @param {*} myUTxOuts 내 UTXO 리스트
+ */
 const findAmountInUTxOuts = (amountNeeded, myUTxOuts) => {
   let currentAmount = 0;
   const includedUTxOuts = [];
   for (const myUTxOut of myUTxOuts) {
     includedUTxOuts.push(myUTxOut);
     currentAmount = currentAmount + myUTxOut.amount;
+    // 필요한 잔액보다 현재 잔액이 큰 경우
     if (currentAmount >= amountNeeded) {
+      // 남은 잔액
       const leftOverAmount = currentAmount - amountNeeded;
       return { includedUTxOuts, leftOverAmount };
     }
@@ -65,11 +89,19 @@ const findAmountInUTxOuts = (amountNeeded, myUTxOuts) => {
   return false;
 };
 
+/**
+ * 트랜잭션 output 생성
+ * @param {*} receiverAddress 수취인 주소
+ * @param {*} myAddress 송금인 주소
+ * @param {*} amount 잔액
+ * @param {*} leftOverAmount 남은 잔액
+ */
 const createTxOuts = (receiverAddress, myAddress, amount, leftOverAmount) => {
   const receiverTxOut = new TxOut(receiverAddress, amount);
   if (leftOverAmount === 0) {
     return [receiverTxOut];
   } else {
+    //  나에게 남은 잔액이 돌아옴
     const leftOverTxOut = new TxOut(myAddress, leftOverAmount);
     return [receiverTxOut, leftOverTxOut];
   }

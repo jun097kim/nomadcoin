@@ -187,6 +187,7 @@ const validateTxIn = (txIn, tx, uTxOutList) => {
   const wantedTxOut = uTxOutList.find(
     uTxO => uTxO.txOutId === txIn.txOutId && uTxO.txOutIndex === txIn.txOutIndex
   );
+  console.log(wantedTxOut);
   if (wantedTxOut === null) {
     return false;
   } else {
@@ -199,6 +200,11 @@ const validateTxIn = (txIn, tx, uTxOutList) => {
 const getAmountInTxIn = (txIn, uTxOutList) =>
   findUTxOut(txIn.txOutId, txIn.txOutIndex, uTxOutList).amount;
 
+/**
+ * 트랜잭션 검증
+ * @param {*} tx
+ * @param {*} uTxOutList
+ */
 const validateTx = (tx, uTxOutList) => {
   if (!isTxStructureValid(tx)) {
     return false;
